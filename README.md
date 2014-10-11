@@ -7,8 +7,8 @@ Usage
 -----
 Just
     
-  sh shot.sh
-  
+    sh shot.sh
+    
 And point your nginx(or other web server) to this directory.
 
 Clients should use normal browsers, open the URL pointing to this directory.
