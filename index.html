@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>技术-工程方向内训</title>
+<style>
+    html, body {
+        margin: 0;
+        padding: 0;
+    }
+    #scr, #scr-old {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    #scr {
+        z-index: 10;
+    }
+    #scr-old {
+        z-index: 5;
+        display: none;
+    }
+    #scr-1 {
+        display: none;
+    }
+</style>
+<script src="jquery-2.1.1.min.js"></script>
+<script>
+function gensrc(scrthis) {
+    return 'scr.jpg?time=' + (scrthis ? scrthis : scrlast);
+}
+$(function() {
+    window.scrmark = 0;
+    window.scrlast = 0;
+    window.scr_ref = setInterval(function() {
+        var now = jQuery.now();
+        console.log(scrmark, scrlast, now);
+        if (scrmark || now - scrlast >= 6000) {
+            window.scrlast = now;
+            $('#scr').attr('src', gensrc());
+            try {
+                $('#scr-1').attr('src', '').replaceWith($('<img id="scr-1" style="display: none; " src="' + gensrc() + '" onload="marknext(' + scrlast + ');">'));
+            } catch(e) {
+                alert('fail');
+                window.scrmark = 1;
+                return;
+            }
+            window.scrmark = 0;
+        } else {
+            //alert(window.scrmark, window.scrlast, jQuery.now());
+        }
+    }, 100);
+});
+function marknext(scrthis) {
+    console.log('mark');
+    window.scrmark = 1;
+    $('#scr-1').attr('src', '').replaceWith($('<img id="scr-1" style="display: none; " src="' + gensrc() + '" onload="marknext(' + scrlast + ');">'));
+    $('#scr').attr('src', gensrc(srcthis));
+}
+</script>
+</head>
+<body>
+<img id="scr-old" src="scr.jpg">
+<img id="scr" src="scr.jpg">
+<img id="scr-1" src="scr.jpg" style="display: none; " onload="marknext(); ">
+</body>
+</html>
