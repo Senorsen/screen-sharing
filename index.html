@@ -35,7 +35,7 @@ $(function() {
     window.scr_ref = setInterval(function() {
         var now = jQuery.now();
         console.log(scrmark, scrlast, now);
-        if (scrmark || now - scrlast >= 6000) {
+        if (scrmark || now - scrlast >= 10000) {
             window.scrlast = now;
             $('#scr').attr('src', gensrc());
             try {
@@ -49,7 +49,7 @@ $(function() {
         } else {
             //alert(window.scrmark, window.scrlast, jQuery.now());
         }
-    }, 100);
+    }, 2000);
 });
 function marknext(scrthis) {
     console.log('mark');
