@@ -1,6 +1,6 @@
 CC=gcc
 AR=$(CC)ar
-CFLAGS = -std=c99 -O2 -lX11 -ljpeg
+CFLAGS = -std=c99 -O2 -lX11 -ljpeg -g
 EXEC=scrshare
 OBJS=main.o pointer.o
 

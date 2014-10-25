@@ -2,66 +2,65 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>技术-工程方向内训</title>
+<title>技术研发中心</title>
 <style>
     html, body {
         margin: 0;
         padding: 0;
     }
-    #scr, #scr-old {
+    #pointer {
         position: absolute;
         top: 0;
         left: 0;
     }
-    #scr {
-        z-index: 10;
-    }
-    #scr-old {
-        z-index: 5;
-        display: none;
-    }
-    #scr-1 {
-        display: none;
-    }
 </style>
 <script src="jquery-2.1.1.min.js"></script>
 <script>
-function gensrc(scrthis) {
-    return 'scr.jpg?time=' + (scrthis ? scrthis : scrlast);
-}
-$(function() {
-    window.scrmark = 0;
-    window.scrlast = 0;
-    window.scr_ref = setInterval(function() {
-        var now = jQuery.now();
-        console.log(scrmark, scrlast, now);
-        if (scrmark || now - scrlast >= 10000) {
-            window.scrlast = now;
-            $('#scr').attr('src', gensrc());
-            try {
-                $('#scr-1').attr('src', '').replaceWith($('<img id="scr-1" style="display: none; " src="' + gensrc() + '" onload="marknext(' + scrlast + ');">'));
-            } catch(e) {
-                alert('fail');
-                window.scrmark = 1;
-                return;
-            }
-            window.scrmark = 0;
+    var resetCanvas = function() {
+        var canvas = document.getElementById('main');
+        (canvas.width == screen.availWidth) ? 0 : (canvas.width = screen.availWidth);
+        (canvas.height == screen.availHeight) ? 0 : (canvas.height = screen.availHeight);
+    };
+    setInterval(resetCanvas, 1000);
+    var getCanvas = function() {
+        if (typeof window.myCanvas != 'undefined') {
+            return window.myCanvas;
         } else {
-            //alert(window.scrmark, window.scrlast, jQuery.now());
+            return window.myCanvas = document.getElementById('main');
         }
-    }, 2000);
-});
-function marknext(scrthis) {
-    console.log('mark');
-    window.scrmark = 1;
-    $('#scr-1').attr('src', '').replaceWith($('<img id="scr-1" style="display: none; " src="' + gensrc() + '" onload="marknext(' + scrlast + ');">'));
-    $('#scr').attr('src', gensrc(srcthis));
-}
+    };
+    var getContext = function() {
+        var canvas = getCanvas();
+        return (typeof window.myContext != 'undefined') ? window.myContext : (window.myContext = canvas.getContext('2d'));
+    };
+    var getStaticImage = function(num, posx, poxy) {
+        var context = getContext();
+        var image = new Image();
+        image.src = 'tmp/' + num + '.jpg?_=' + jQuery.now();
+        image.onload = function() {
+            context.drawImage(this, posx, posy);
+        };
+    };
+    var setPointer = function(posx, posy) {
+        $('#pointer').css({left: posx, top: posy});
+    };
+    var startFetch = function(start) {
+        if (start == 0) start = 'current';
+        $.get('tmp/' + start + '.json?_=' + jQuery.now(), null, function(data) {
+            var newest = data.newest;
+            getStaticImage(newest, 0, 0);
+            if (data.now > data.newest) {
+                for (var i = 0; i < data.updates; i++) {
+                    getStaticImage('' + newest + '_' + i, data.diff[i][0], data.diff[i][1]);
+                }
+            }
+            setPointer(data.pointer[0], data.pointer[1]);
+        }, 'json');
+    };
 </script>
 </head>
 <body>
-<img id="scr-old" src="scr.jpg">
-<img id="scr" src="scr.jpg">
-<img id="scr-1" src="scr.jpg" style="display: none; " onload="marknext(); ">
+    <canvas id="main"></canvas>
+    <div id="pointer"></div>
 </body>
 </html>

@@ -70,7 +70,7 @@ int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_h
             int flag = 0;
             for (int x = i; x < i + block_w; x++) {
                 for (int y = j; y < j + block_h; y++) {
-                    if (*(new_image->data + y * block_w * 4 + x + 4) != *(old_image->data + y * block_w * 4 + x + 4)) {
+                    if (*(new_image->data + y * new_image->width * 4 + x * 4) != *(old_image->data + y * old_image->width * 4 + x * 4)) {
                         flag = 1;
                         break;
                     }
@@ -82,9 +82,17 @@ int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_h
             update_rect[updates][0] = i;
             update_rect[updates][1] = j;
             XImage *img = (XImage *) calloc(1, sizeof(XImage));
+            img->width = block_w;
+            img->height = block_h;
             img->bytes_per_line = block_w * 4;
             img->data = (char *) calloc(1, sizeof(char) * 4 * block_w * block_h);
-            memcpy(img->data, new_image->data, 4 * block_w * block_h);
+            for (int x = i; x < i + block_w; x++) {
+                for (int y = j; y < j + block_h; y++) {
+                    *(img->data+(y-j)*block_w*4+(x-i)*4) = *(new_image->data+y*(new_image->width)*4+x*4);
+                    *(img->data+(y-j)*block_w*4+(x-i)*4+1) = *(new_image->data+y*(new_image->width)*4+x*4+1);
+                    *(img->data+(y-j)*block_w*4+(x-i)*4+2) = *(new_image->data+y*(new_image->width)*4+x*4+2);
+                }
+            }
             char filename[255];
             sprintf(filename, "tmp/%d_%d.jpg", timestamp, updates);
             output_jpeg(img, filename);
@@ -108,16 +116,16 @@ int capture_desktop(int timestamp, int need_update) {
         return -1;
     }
     desktop = RootWindow(disp, 0);  // Point to the root window
-    if (!desktop) {
+    if (desktop == 0) {
         return -1;
     }
     screen_width = DisplayWidth(disp,0);
     screen_height = DisplayHeight(disp,0);
-    img = XGetImage(disp, desktop, 0, 0, screen_width, screen_height, 0, ZPixmap);
+    img = XGetImage(disp, desktop, 0, 0, screen_width, screen_height, AllPlanes, ZPixmap);
     // Processing...
     int updates = 0;
     if (lastimg != NULL) {
-        updates = compare_image(img, lastimg, 50, 50, timestamp);
+        updates = compare_image(img, lastimg, 200, 200, timestamp);
     }
     char filename[255];
     if (need_update) {
@@ -130,28 +138,26 @@ int capture_desktop(int timestamp, int need_update) {
     get_pointer(&pointer_x, &pointer_y);
 
     char json[10240], json_updates[10240], tmps[10240];
-    sprintf(json, "{\"newest\":%d,\"now\":%d,\"updates\":%d,\"pointer\":[%d,%d],\"diff\":[", newest, timestamp, updates, pointer_x, pointer_y);
+    sprintf(json, "{\"newest\":%d,\"now\":%d,\"width\":%d,\"height\":%d,\"updates\":%d,\"pointer\":[%d,%d],\"diff\":[", newest, timestamp, screen_width, screen_height, updates, pointer_x, pointer_y);
     json_updates[0] = 0;
     for (int i = 0; i < updates; i++) {
         if (i > 0) strcat(json_updates, ",");
-        sprintf(tmps, "{\"x\":%d,\"y\":%d}", update_rect[i][0], update_rect[i][1]);
+        sprintf(tmps, "[%d,%d]", update_rect[i][0], update_rect[i][1]);
         strcat(json_updates, tmps);
     }
     strcat(json, json_updates);
-    sprintf(json, "]}");
+    sprintf(json, "%s]}", json);
 
     sprintf(filename, "tmp/%d.json", timestamp);
     FILE *fp = fopen(filename, "wb");
     fwrite(json, strlen(json), 1, fp);
     fclose(fp);
-    if (access("tmp/current.json", 0) == 0) {
-        // Create a 'current' symlink
-        remove("tmp/current.json");
-        symlink(filename, "tmp/current.json");
-    }
-    printf("%09d done with %d updates.\n", timestamp, updates);
+    sprintf(filename, "%d.json", timestamp);
+    remove("tmp/current.json");
+    symlink(filename, "tmp/current.json");
+    printf("%9.d done with %d updates.\n", timestamp, updates);
 
-    XDestroyImage(lastimg);
+    if (lastimg) XDestroyImage(lastimg);
     lastimg = img;
     XCloseDisplay(disp);
     return 0;
@@ -159,21 +165,23 @@ int capture_desktop(int timestamp, int need_update) {
 
 int main(int argc, char *argv[]) {
     lastimg = NULL;
+    system("rm -rf tmp; mkdir -p tmp");
     memset(&update_rect, 0, sizeof(update_rect));
-    int time = 0, lasttime, ts = 0, fullscreen = 0;
+    int time = 0, lasttime, ts = 0, fullscreen = 0, fn = 0;
     
     while (1) {
         ts++;
         time = generate_timestamp();
-        if (time - lasttime > 5000) {
+        if (time - lasttime > 1) {
             // Save fullscreen every 5s.
-            fullscreen = 1;
+            lasttime = time;
+            fn++;
+            fullscreen = fn;
         } else {
             fullscreen = 0;
         }
         capture_desktop(ts, fullscreen);
-        lasttime = time;
-        sleep(0.1);
+        usleep(200000);
     }
     return 0;
 }

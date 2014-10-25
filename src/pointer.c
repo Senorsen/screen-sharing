@@ -17,7 +17,6 @@ void get_pointer(int *pointer_x, int *pointer_y) {
     Display *display = XOpenDisplay(NULL);
     assert(display);
     number_of_screens = XScreenCount(display);
-    fprintf(stderr, "There are %d screens available in this X session\n", number_of_screens);
     root_windows = malloc(sizeof(Window) * number_of_screens);
     for (i = 0; i < number_of_screens; i++) {
         root_windows[i] = XRootWindow(display, i);
