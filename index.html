@@ -82,7 +82,7 @@
                 getStaticImage('full_' + newest, 0, 0, newest);
                 window.lastestFull = data.newest;
             }
-            if (data.now > window.lastestUpdate && data.updates <= 100) {
+            if (data.now > window.lastestUpdate && data.updates <= 300) {
                 for (var i = 0; i < data.updates; i++) {
                     getStaticImage('' + data.now + '_' + i, data.diff[i][0], data.diff[i][1], data.now);
                 }
