@@ -33,6 +33,7 @@ int output_jpeg(XImage *img, char *filename) {
     cinfo.image_height = img->height;
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
+    jpeg_set_quality(&cinfo, 40, 0);
 
     jpeg_set_defaults(&cinfo);
     jpeg_start_compress(&cinfo, 1);

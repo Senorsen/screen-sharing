@@ -52,11 +52,11 @@
         var startTime = jQuery.now();
         image.onload = function() {
             if (jQuery.now() - startTime > 400) return;
-            if (realnum >= window.updateNewest) {
+            if (realnum >= window.updateNewest - 2) {
                 window.updateNewest = realnum;
             } else {
                 // 保证不倒退
-                if (typeof fullNewest == 'undefined' || fullNewest <= jQuery.now() - 400) {
+                if (typeof fullNewest == 'undefined' || fullNewest <= jQuery.now() - 800) {
                     window.fullNewest = jQuery.now();
                 } else {
                     return;
@@ -82,7 +82,7 @@
                 getStaticImage('full_' + newest, 0, 0, newest);
                 window.lastestFull = data.newest;
             }
-            if (data.now > window.lastestUpdate && data.updates <= 300) {
+            if (data.now > window.lastestUpdate) {
                 for (var i = 0; i < data.updates; i++) {
                     getStaticImage('' + data.now + '_' + i, data.diff[i][0], data.diff[i][1], data.now);
                 }
