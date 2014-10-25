@@ -20,7 +20,7 @@ int generate_timestamp() {
     return tv.tv_sec;
 }
 
-int output_jpeg(XImage *img, char *filename) {
+int output_jpeg(XImage *img, char *filename, int quality) {
     FILE *fp = fopen(filename, "wb");
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -33,9 +33,9 @@ int output_jpeg(XImage *img, char *filename) {
     cinfo.image_height = img->height;
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
-    jpeg_set_quality(&cinfo, 40, 0);
 
     jpeg_set_defaults(&cinfo);
+    jpeg_set_quality(&cinfo, quality, 1);
     jpeg_start_compress(&cinfo, 1);
 
     JSAMPROW row_pointer[1];    // Pointer to a single scan line
@@ -60,6 +60,7 @@ int output_jpeg(XImage *img, char *filename) {
     return 0;
 }
 int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_height, int timestamp) {
+    // a native way to calculate delta data
     int wblocks = new_image->width / per_width,
         hblocks = new_image->height / per_height,
         updates = 0;
@@ -71,6 +72,7 @@ int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_h
             int flag = 0;
             for (int x = i; x < i + block_w; x++) {
                 for (int y = j; y < j + block_h; y++) {
+                    // TODO: not just compare RED but all the colors?
                     if (*(new_image->data + y * new_image->width * 4 + x * 4) != *(old_image->data + y * old_image->width * 4 + x * 4)) {
                         flag = 1;
                         break;
@@ -89,6 +91,7 @@ int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_h
             img->data = (char *) calloc(1, sizeof(char) * 4 * block_w * block_h);
             for (int x = i; x < i + block_w; x++) {
                 for (int y = j; y < j + block_h; y++) {
+                    // maybe I can be more clever...
                     *(img->data+(y-j)*block_w*4+(x-i)*4) = *(new_image->data+y*(new_image->width)*4+x*4);
                     *(img->data+(y-j)*block_w*4+(x-i)*4+1) = *(new_image->data+y*(new_image->width)*4+x*4+1);
                     *(img->data+(y-j)*block_w*4+(x-i)*4+2) = *(new_image->data+y*(new_image->width)*4+x*4+2);
@@ -96,7 +99,7 @@ int compare_image(XImage *new_image, XImage *old_image, int per_width, int per_h
             }
             char filename[255];
             sprintf(filename, "tmp/%d_%d.jpg", timestamp, updates);
-            output_jpeg(img, filename);
+            output_jpeg(img, filename, 40);
             free(img);
             updates++;
         }
@@ -131,7 +134,7 @@ int capture_desktop(int timestamp, int need_update) {
     char filename[255];
     if (need_update) {
         sprintf(filename, "tmp/full_%d.jpg", timestamp);
-        output_jpeg(img, filename);
+        output_jpeg(img, filename, 30);
         newest = timestamp;
     }
 

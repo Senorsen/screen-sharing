@@ -9,6 +9,7 @@
         padding: 0;
     }
     #pointer {
+        transition: all linear 0.1s;
         position: absolute;
         top: 0;
         left: 0;
@@ -90,7 +91,7 @@
             setPointer(data.pointer[0], data.pointer[1]);
             window.lastestUpdate = data.now;
             if (continuous) {
-                var wait_clock = data.updates > 0 ? 200 : 200;
+                var wait_clock = data.updates > 10 ? 200 : 100;
                 setTimeout(function() {
                     startFetch(0, 0, 1);
                 }, wait_clock);
@@ -99,7 +100,7 @@
     };
     setInterval(function() {
         startFetch(0, 1, 0);
-    }, 3000);
+    }, 2000);
     $.ajaxSetup({
         error: function() {
             startFetch(0, 1, 1);
