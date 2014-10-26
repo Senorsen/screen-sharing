@@ -78,6 +78,7 @@
         if (start == 0) start = 'current';
         $.get('tmp/' + start + '.json?_=' + jQuery.now(), null, function(data) {
             resetCanvas(data.width, data.height);
+            console.log('w=' + data.width + ' h=' + data.height + ' newest=' + data.newest + ' now=' + data.now + ' updates=' + data.updates);
             var newest = data.newest;
             if (flag) {
                 getStaticImage('full_' + newest, 0, 0, newest);
