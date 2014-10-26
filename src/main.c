@@ -8,6 +8,7 @@
 #include <sys/time.h>
 #include <X11/Xlib.h>
 #include <jpeglib.h>
+#include "config.h"
 #include "pointer.h"
 
 XImage *lastimg;
@@ -125,7 +126,9 @@ int capture_desktop(int timestamp, int need_update) {
     }
     screen_width = DisplayWidth(disp,0);
     screen_height = DisplayHeight(disp,0);
-    img = XGetImage(disp, desktop, 0, 0, screen_width, screen_height, AllPlanes, ZPixmap);
+    screen_width = SCREEN_WIDTH;
+    screen_height = SCREEN_HEIGHT;
+    img = XGetImage(disp, desktop, SCREEN_LEFT, SCREEN_TOP, screen_width, screen_height, AllPlanes, ZPixmap);
     // Processing...
     int updates = 0;
     if (lastimg != NULL) {
