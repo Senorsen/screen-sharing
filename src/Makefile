@@ -2,7 +2,7 @@ CC=gcc
 AR=$(CC)ar
 CFLAGS = -std=c99 -O2 -lX11 -ljpeg -g
 EXEC=scrcast
-OBJS=main.o pointer.o imgconv.o
+OBJS=main.o pointer.o imgconv.o vpxenc.o
 
 INSPATH=../
 

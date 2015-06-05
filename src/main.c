@@ -12,6 +12,7 @@
 #include "config.h"
 #include "pointer.h"
 #include "imgconv.h"
+#include "vpxenc.h"
 
 void output_jpeg(unsigned int width, unsigned int height, unsigned char *rgbdata, char *filename, int quality) {
     FILE *fp = fopen(filename, "wb");
@@ -75,6 +76,9 @@ int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yu
     rgb2yuv420p(img->width, img->height, rgbdata, yuvdata);
     free(rgbdata);
 
+    *width = img->width;
+    *height = img->height;
+
     XDestroyImage(img);
     XCloseDisplay(disp);
     return 0;
@@ -83,7 +87,16 @@ int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yu
 int main(int argc, char *argv[]) {
     unsigned int width, height;
     unsigned char *yuvdata;
-    capture_desktop(&width, &height, yuvdata);
+    int i = 0;
+    FILE *fp = fopen("/tmp/a.yuv", "wb");
+    while (i < 100) {
+        capture_desktop(&width, &height, yuvdata);
+        fwrite(yuvdata, width * height * 3 / 2, 1, fp);
+        free(yuvdata);
+        usleep(10000);
+        i++;
+    }
+    fclose(fp);
     return 0;
 }
 
