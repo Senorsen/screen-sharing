@@ -31,7 +31,7 @@ void get_pointer(int *pointer_x, int *pointer_y) {
     }
     if (result != True) {
         fprintf(stderr, "No mouse found.\n");
-        return -1;
+        return;
     }
     *pointer_x = root_x;
     *pointer_y = root_y;

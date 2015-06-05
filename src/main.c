@@ -7,14 +7,11 @@
 
 #include <sys/time.h>
 #include <X11/Xlib.h>
+#include <X11/Xutil.h>
 #include <jpeglib.h>
 #include "config.h"
 #include "pointer.h"
 #include "imgconv.h"
-
-XImage *lastimg;
-int newest;
-int update_rect[1024][2];
 
 int generate_timestamp() {
     struct timeval tv;
