@@ -35,11 +35,21 @@ int capture_desktop() {
     if (desktop == 0) {
         return -1;
     }
-    screen_width = DisplayWidth(disp,0);
-    screen_height = DisplayHeight(disp,0);
+    screen_width = DisplayWidth(disp, 0);
+    screen_height = DisplayHeight(disp, 0);
     screen_width = SCREEN_WIDTH;
     screen_height = SCREEN_HEIGHT;
     img = XGetImage(disp, desktop, SCREEN_LEFT, SCREEN_TOP, screen_width, screen_height, AllPlanes, ZPixmap);
+    
+    unsigned int size = sizeof(unsigned char) * img->width * img->height * 1.5 * 3;
+    unsigned char *rgbdata = (unsigned char *) malloc(size);
+    unsigned char *yuvdata = (unsigned char *) malloc(size);
+
+    rgba2rgb(img->width, img->height, img->data, rgbdata);
+    rgb2yuv420p(img->width, img->height, rgbdata, yuvdata);
+    FILE *fp = fopen("test.test", "wb");
+    fwrite(yuvdata, size, 1, fp);
+    fclose(fp);
 
     XDestroyImage(img);
     XCloseDisplay(disp);
