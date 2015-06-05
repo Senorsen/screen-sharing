@@ -72,7 +72,7 @@ int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yu
     unsigned char *rgbdata = (unsigned char *) malloc(size);
     yuvdata = (unsigned char *) malloc(size);
 
-    rgba2rgb(img->width, img->height, img->data, rgbdata);
+    rgba2rgb(img->width, img->height, (unsigned char *) img->data, rgbdata);
     rgb2yuv420p(img->width, img->height, rgbdata, yuvdata);
     free(rgbdata);
 

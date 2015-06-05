@@ -1,6 +1,5 @@
-CC=gcc
-AR=$(CC)ar
-CFLAGS = -std=c99 -O2 -lX11 -ljpeg -g
+CC=clang
+CFLAGS = -std=c99 -O2 -lX11 -lvpx -ljpeg -g
 EXEC=scrcast
 OBJS=main.o pointer.o imgconv.o vpxenc.o
 
