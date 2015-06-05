@@ -2,4 +2,6 @@
 tmp
 *.o
 *.swp
+pointer
+scrcast
 
