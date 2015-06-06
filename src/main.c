@@ -14,6 +14,8 @@
 #include "imgconv.h"
 #include "vpxif.h"
 
+FILE *fp;
+
 void output_jpeg(unsigned int width, unsigned int height, unsigned char *rgbdata, char *filename, int quality) {
     FILE *fp = fopen(filename, "wb");
     struct jpeg_compress_struct cinfo;
@@ -46,7 +48,7 @@ void output_jpeg(unsigned int width, unsigned int height, unsigned char *rgbdata
 }
 
 
-int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yuvdata) {
+int capture_desktop(unsigned int *width, unsigned int *height, unsigned char **yuvdata) {
     Window desktop;
     Display *disp;
     XImage *img;
@@ -70,10 +72,10 @@ int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yu
 
     unsigned int size = sizeof(unsigned char) * img->width * img->height * 1.5 * 3;
     unsigned char *rgbdata = (unsigned char *) malloc(size);
-    yuvdata = (unsigned char *) malloc(size);
+    *yuvdata = (unsigned char *) malloc(size);
 
     rgba2rgb(img->width, img->height, (unsigned char *) img->data, rgbdata);
-    rgb2yuv420p(img->width, img->height, rgbdata, yuvdata);
+    rgb2yuv420p(img->width, img->height, rgbdata, *yuvdata);
     free(rgbdata);
 
     *width = img->width;
@@ -84,19 +86,29 @@ int capture_desktop(unsigned int *width, unsigned int *height, unsigned char *yu
     return 0;
 }
 
+void callback(unsigned int size, unsigned char *vpxdata) {
+    fwrite(vpxdata, size, 1, fp);
+}
+
 int main(int argc, char *argv[]) {
     unsigned int width, height;
-    unsigned char *yuvdata;
+    unsigned char *yuvdata, *vpxdata;
     int i = 0;
-    FILE *fp = fopen("/tmp/a.yuv", "wb");
-    while (i < 100) {
-        capture_desktop(&width, &height, yuvdata);
-        fwrite(yuvdata, width * height * 3 / 2, 1, fp);
+    
+    vpxif_init(25, SCREEN_WIDTH, SCREEN_HEIGHT);
+    FILE *yuv = fopen("/tmp/a.yuv", "wb");
+    fp = fopen("/tmp/a.webm", "wb");
+    while (i < 20) {
+        capture_desktop(&width, &height, &yuvdata);
+        vpx_img_update(yuvdata, &vpxdata, callback);
+        fwrite(yuvdata, width * height * 3 / 2, 1, yuv);
         free(yuvdata);
-        usleep(10000);
+        usleep(40000);
         i++;
     }
+    vpxif_finish_up(&vpxdata, callback);
     fclose(fp);
+    fclose(yuv);
     return 0;
 }
 

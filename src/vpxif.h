@@ -15,13 +15,7 @@
 #define VP8_FOURCC_MASK (0x00385056)
 #define VP9_FOURCC_MASK (0x00395056)
 
-void mem_put_le32(unsigned char *mem, int val) {
-
-    mem[0] = (val >>  0) & 0xff;
-    mem[1] = (val >>  8) & 0xff;
-    mem[2] = (val >> 16) & 0xff;
-    mem[3] = (val >> 24) & 0xff;
-}
+void mem_put_le32(unsigned char *mem, int val);
 
 typedef struct VpxInterface {
     const char *const name;
@@ -41,10 +35,14 @@ typedef struct {
     struct VpxRational time_base;
 } VpxVideoInfo;
 
-int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height);
+int vpxif_init(int cfg_fps, unsigned int width, unsigned int height);
 void vpx_img_read(unsigned char *yuvdata);
 int vpx_img_plane_width(const vpx_image_t *img, int plane);
 int vpx_img_plane_height(const vpx_image_t *img, int plane);
+
+void vpx_img_update(unsigned char *yuvdata, unsigned char **vpxdata, void (*callback)(unsigned int, unsigned char *));
+void vpxif_finish_up(unsigned char **vpxdata, void (*callback)(unsigned int, unsigned char *));
+
 
 #endif
 

@@ -20,9 +20,8 @@ int bitrate;
 int fps;
 vpx_codec_ctx_t codec;
 
-int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height) {
+int vpxif_init(int cfg_fps, unsigned int width, unsigned int height) {
     vpx_codec_enc_cfg_t cfg;
-    vpx_image_t raw;
     vpx_codec_err_t res;
     bitrate = 200;
     keyframe_interval = 400;
@@ -35,11 +34,11 @@ int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height) {
     info.frame_height = height;
     info.time_base.numerator = 1;
     info.time_base.denominator = fps;
-    if (!vpx_img_alloc(&raw, VPX_IMG_FMT_I420, info.frame_width, info.frame_height, 1)) {
+    img = (vpx_image_t *) malloc(sizeof(vpx_image_t));
+    if (!vpx_img_alloc(img, VPX_IMG_FMT_I420, info.frame_width, info.frame_height, 1)) {
         printf("[ERROR] Failed to allocate image.\n");
         return 1;
     }
-    img = &raw;
     res = vpx_codec_enc_config_default(encoder.codec_interface(), &cfg, 0);
     if (res) {
         printf("[ERROR] Failed to get default codec config.\n");
@@ -54,13 +53,22 @@ int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height) {
     
     if (vpx_codec_enc_init(&codec, encoder.codec_interface(), &cfg, 0)) {
         printf("[ERROR] Failed to initialize encoder.\n");
+        const char *detail = vpx_codec_error_detail(&codec);
+        printf("    Err: %s\n", vpx_codec_error(&codec));
         return 3;
     }
 
     return 0;
 }
 
-void encode_frame(vpx_codec_ctx_t *codec, vpx_image_t *img, int frame_index, int flags, unsigned char *vpxdata, void (*callback)(unsigned char *)) {
+void write_frame(unsigned char *vpxdata, const vpx_codec_cx_pkt_t *pkt) {
+    mem_put_le32(vpxdata + 0, (int) pkt->data.frame.sz);
+    mem_put_le32(vpxdata + 4, (int) (pkt->data.frame.pts & 0xFFFFFFFF));
+    mem_put_le32(vpxdata + 8, (int) (pkt->data.frame.pts >> 32));
+    memcpy(vpxdata + 12, pkt->data.frame.buf, pkt->data.frame.sz);
+}
+
+void encode_frame(vpx_codec_ctx_t *codec, vpx_image_t *img, int frame_index, int flags, unsigned char **vpxdata, void (*callback)(unsigned int, unsigned char *)) {
     int got_pkts = 0;
     vpx_codec_iter_t iter = NULL;
     const vpx_codec_cx_pkt_t *pkt = NULL;
@@ -75,17 +83,14 @@ void encode_frame(vpx_codec_ctx_t *codec, vpx_image_t *img, int frame_index, int
             const int keyframe = (pkt->data.frame.flags & VPX_FRAME_IS_KEY) != 0;
             // from ivf_write_frame_header
             unsigned int size = pkt->data.frame.sz + 12;
-            vpxdata = (unsigned char *) malloc(size);
-            mem_put_le32(vpxdata, (int) pkt->data.frame.sz);
-            mem_put_le32(vpxdata + 4, (int) (pkt->data.frame.pts & 0xFFFFFFFF));
-            mem_put_le32(vpxdata + 8, (int) (pkt->data.frame.pts >> 32));
-            memcpy(vpxdata + 12, pkt->data.frame.buf, pkt->data.frame.sz);
-            callback(vpxdata);
+            *vpxdata = (unsigned char *) malloc(size);
+            write_frame(*vpxdata, pkt);
+            callback(size, *vpxdata);
         }
     }
 }
 
-void vpx_img_update(unsigned char *yuvdata, unsigned char *vpxdata, void (*callback)(unsigned char *)) {
+void vpx_img_update(unsigned char *yuvdata, unsigned char **vpxdata, void (*callback)(unsigned int, unsigned char *)) {
     // from WebM project, libvpx git repo, tools_common.c
     // with slight changes.
     int plane;
@@ -112,6 +117,12 @@ void vpx_img_update(unsigned char *yuvdata, unsigned char *vpxdata, void (*callb
 
 }
 
+void vpxif_finish_up(unsigned char **vpxdata, void (*callback)(unsigned int, unsigned char *)) {
+    encode_frame(&codec, NULL, 01, 0, vpxdata, callback);
+    vpx_img_free(img);
+    vpx_codec_destroy(&codec);
+}
+
 int vpx_img_plane_width(const vpx_image_t *img, int plane) {
     if (plane > 0 && img->x_chroma_shift > 0)
         return (img->d_w + 1) >> img->x_chroma_shift;
@@ -124,5 +135,12 @@ int vpx_img_plane_height(const vpx_image_t *img, int plane) {
         return (img->d_h + 1) >> img->y_chroma_shift;
     else
         return img->d_h;
+}
+
+void mem_put_le32(unsigned char *mem, int val) {
+    mem[0] = (val >>  0) & 0xff;
+    mem[1] = (val >>  8) & 0xff;
+    mem[2] = (val >> 16) & 0xff;
+    mem[3] = (val >> 24) & 0xff;
 }
 
