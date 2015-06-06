@@ -1,6 +1,10 @@
+/**
+ * Some code from libvpx project.
+ *
+ */
 
-#ifndef __VPXENC_H__
-#define __VPXENC_H__
+#ifndef __VPXIF_H__
+#define __VPXIF_H__
 
 #include <vpx/vpx_codec.h>
 #include <vpx/vpx_image.h>
@@ -10,6 +14,14 @@
 #define VP9_FOURCC (0x30395056)
 #define VP8_FOURCC_MASK (0x00385056)
 #define VP9_FOURCC_MASK (0x00395056)
+
+void mem_put_le32(unsigned char *mem, int val) {
+
+    mem[0] = (val >>  0) & 0xff;
+    mem[1] = (val >>  8) & 0xff;
+    mem[2] = (val >> 16) & 0xff;
+    mem[3] = (val >> 24) & 0xff;
+}
 
 typedef struct VpxInterface {
     const char *const name;
@@ -29,8 +41,8 @@ typedef struct {
     struct VpxRational time_base;
 } VpxVideoInfo;
 
-int vpxenc_init(int fps, unsigned int width, unsigned int height);
-void vpx_img_read(vpx_image_t *img, unsigned char *yuvdata);
+int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height);
+void vpx_img_read(unsigned char *yuvdata);
 int vpx_img_plane_width(const vpx_image_t *img, int plane);
 int vpx_img_plane_height(const vpx_image_t *img, int plane);
 

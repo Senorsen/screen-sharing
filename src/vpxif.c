@@ -11,16 +11,23 @@
 #include <vpx/vpx_integer.h>
 
 #include "config.h"
-#include "vpxenc.h"
+#include "vpxif.h"
 
-int vpxenc_init(int fps, unsigned int width, unsigned int height) {
-    vpx_codec_ctx_t codec;
+vpx_image_t *img;
+unsigned int frame_count;
+int keyframe_interval;
+int bitrate;
+int fps;
+vpx_codec_ctx_t codec;
+
+int vpxenc_init(int cfg_fps, unsigned int width, unsigned int height) {
     vpx_codec_enc_cfg_t cfg;
-    int frame_count = 0;
     vpx_image_t raw;
     vpx_codec_err_t res;
-    const int bitrate = 200;
-    int keyframe_interval = 400;
+    bitrate = 200;
+    keyframe_interval = 400;
+    frame_count = 0;
+    fps = cfg_fps;
     const VpxInterface encoder = {"vp8", VP8_FOURCC, &vpx_codec_vp8_cx};
     VpxVideoInfo info = {0};
     info.codec_fourcc = encoder.fourcc;
@@ -32,6 +39,7 @@ int vpxenc_init(int fps, unsigned int width, unsigned int height) {
         printf("[ERROR] Failed to allocate image.\n");
         return 1;
     }
+    img = &raw;
     res = vpx_codec_enc_config_default(encoder.codec_interface(), &cfg, 0);
     if (res) {
         printf("[ERROR] Failed to get default codec config.\n");
@@ -52,7 +60,32 @@ int vpxenc_init(int fps, unsigned int width, unsigned int height) {
     return 0;
 }
 
-void vpx_img_read(vpx_image_t *img, unsigned char *yuvdata) {
+void encode_frame(vpx_codec_ctx_t *codec, vpx_image_t *img, int frame_index, int flags, unsigned char *vpxdata, void (*callback)(unsigned char *)) {
+    int got_pkts = 0;
+    vpx_codec_iter_t iter = NULL;
+    const vpx_codec_cx_pkt_t *pkt = NULL;
+    const vpx_codec_err_t res = vpx_codec_encode(codec, img, frame_index, 1, flags, VPX_DL_GOOD_QUALITY);
+    if (res != VPX_CODEC_OK) {
+        printf("[ERROR] Failed to encode frame");
+        return;
+    }
+    while ((pkt = vpx_codec_get_cx_data(codec, &iter)) != NULL) {
+        got_pkts = 1;
+        if (pkt->kind == VPX_CODEC_CX_FRAME_PKT) {
+            const int keyframe = (pkt->data.frame.flags & VPX_FRAME_IS_KEY) != 0;
+            // from ivf_write_frame_header
+            unsigned int size = pkt->data.frame.sz + 12;
+            vpxdata = (unsigned char *) malloc(size);
+            mem_put_le32(vpxdata, (int) pkt->data.frame.sz);
+            mem_put_le32(vpxdata + 4, (int) (pkt->data.frame.pts & 0xFFFFFFFF));
+            mem_put_le32(vpxdata + 8, (int) (pkt->data.frame.pts >> 32));
+            memcpy(vpxdata + 12, pkt->data.frame.buf, pkt->data.frame.sz);
+            callback(vpxdata);
+        }
+    }
+}
+
+void vpx_img_update(unsigned char *yuvdata, unsigned char *vpxdata, void (*callback)(unsigned char *)) {
     // from WebM project, libvpx git repo, tools_common.c
     // with slight changes.
     int plane;
@@ -70,6 +103,13 @@ void vpx_img_read(vpx_image_t *img, unsigned char *yuvdata) {
             buf += stride;
         }
     }
+    
+    int flags = 0;
+    if (keyframe_interval > 0 && frame_count % keyframe_interval == 0) {
+        flags |= VPX_EFLAG_FORCE_KF;
+    }
+    encode_frame(&codec, img, frame_count++, flags, vpxdata, callback);
+
 }
 
 int vpx_img_plane_width(const vpx_image_t *img, int plane) {

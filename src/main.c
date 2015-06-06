@@ -12,7 +12,7 @@
 #include "config.h"
 #include "pointer.h"
 #include "imgconv.h"
-#include "vpxenc.h"
+#include "vpxif.h"
 
 void output_jpeg(unsigned int width, unsigned int height, unsigned char *rgbdata, char *filename, int quality) {
     FILE *fp = fopen(filename, "wb");

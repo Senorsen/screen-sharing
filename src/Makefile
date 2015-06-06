@@ -1,7 +1,7 @@
 CC=clang
 CFLAGS = -std=c99 -O2 -lX11 -lvpx -ljpeg -g
 EXEC=scrcast
-OBJS=main.o pointer.o imgconv.o vpxenc.o
+OBJS=main.o pointer.o imgconv.o vpxif.o
 
 INSPATH=../
 
