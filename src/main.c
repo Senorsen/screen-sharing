@@ -16,6 +16,12 @@
 
 FILE *fp;
 
+unsigned int get_usec() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    return (int) tv.tv_sec * 1000 + tv.tv_usec / 1000;
+}
+
 void output_jpeg(unsigned int width, unsigned int height, unsigned char *rgbdata, char *filename, int quality) {
     FILE *fp = fopen(filename, "wb");
     struct jpeg_compress_struct cinfo;
@@ -98,12 +104,13 @@ int main(int argc, char *argv[]) {
     vpxif_init(25, SCREEN_WIDTH, SCREEN_HEIGHT);
     FILE *yuv = fopen("/tmp/a.yuv", "wb");
     fp = fopen("/tmp/a.webm", "wb");
-    while (i < 20) {
+    while (i < 50) {
+        printf("[Time] %u\n", get_usec());
         capture_desktop(&width, &height, &yuvdata);
         vpx_img_update(yuvdata, &vpxdata, callback);
         fwrite(yuvdata, width * height * 3 / 2, 1, yuv);
         free(yuvdata);
-        usleep(40000);
+        usleep(10000);
         i++;
     }
     vpxif_finish_up(&vpxdata, callback);
